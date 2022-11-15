@@ -4,6 +4,8 @@ import MessageList from "./components/MessageList";
 import Message from "./components/Message";
 import MessageSender from "./components/MessageSender";
 import axios from "axios";
+import { io, Socket } from "socket.io-client";
+import { type } from "os";
 
 const uuid = () => window.crypto.randomUUID();
 
@@ -47,15 +49,21 @@ function App() {
   const [text, setText] = useState<string>("");
   //const [messages, setMessages] = useState<Message[]>([]);
   const [messages, dispatch] = useReducer(messageReducer, []);
+  const [socket, setSocket] = useState<Socket>();
 
   useEffect(() => {
-    const intervall = setInterval(() => {
-      getMessages().then((messages) => {
-        dispatch({ type: "replace", messages: messages });
-      });
-    }, 2500);
-    return () => clearInterval(intervall);
-  });
+    const socket = io(API_ENDPOINT, { withCredentials: true });
+    // explains wich url path sockets has to talk with
+    setSocket(socket);
+    socket.on("message", (data) => {
+      const mess = JSON.parse(data) as Message;
+      dispatch({ type: "add", messages: messages });
+    });
+
+    socket.on("messages", (data) => {
+      const msgs = JSON.parse(data) as Message[];
+    });
+  }, [dispatch]);
 
   const sendMessage = (message: Message) => {
     sendNewMessage(message).then((messages) => {
