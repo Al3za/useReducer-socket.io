@@ -5,7 +5,6 @@ import Message from "./components/Message";
 import MessageSender from "./components/MessageSender";
 import axios from "axios";
 import { io, Socket } from "socket.io-client";
-import { type } from "os";
 
 const uuid = () => window.crypto.randomUUID();
 
@@ -49,26 +48,31 @@ function App() {
   const [text, setText] = useState<string>("");
   //const [messages, setMessages] = useState<Message[]>([]);
   const [messages, dispatch] = useReducer(messageReducer, []);
-  const [socket, setSocket] = useState<Socket>();
+  const [sOcket, setSocket] = useState<Socket>();
 
   useEffect(() => {
     const socket = io(API_ENDPOINT, { withCredentials: true });
     // explains wich url path sockets has to talk with
     setSocket(socket);
     socket.on("message", (data) => {
-      const mess = JSON.parse(data) as Message;
-      dispatch({ type: "add", messages: messages });
+      /// same thing as happen below hapen here
+      const mess = data as Message;
+      dispatch({ type: "add", message: mess });
     });
 
     socket.on("messages", (data) => {
-      const msgs = JSON.parse(data) as Message[];
+      // "messages" är communication path mellan backend och frontend socket.io
+      // det är viktigt att det matchar
+      // messages från backend fångas och hamnar i dispach, som renderar vidare innehållet av den som fick från backend socket.io
+      const msgs = data as Message[];
+      dispatch({type:'replace', messages:msgs})
     });
   }, [dispatch]);
 
   const sendMessage = (message: Message) => {
-    sendNewMessage(message).then((messages) => {
-      dispatch({ type: "replace", messages: messages });
-    });
+    sOcket?.emit('messagez', message)
+    // här skickar vi den nya meddelandet till socket.io i backend
+    // och sedamn för vi meddelande som blir fångad i socket.io här övan 
   };
 
   return (
@@ -94,3 +98,6 @@ function App() {
 }
 
 export default App;
+
+// React.StrictMode i index.tsx kör 2 ggr statements av en ogrundligt anledning.
+// ta bort det för tillfället

@@ -9,6 +9,7 @@ dotenv.config();
 const CORS_ORIGIN = ["http://localhost:3000"];
 
 const app: Express = express();
+// här har vi vår vanliga express server
 app.use(json());
 app.use(
   cors({
@@ -18,10 +19,12 @@ app.use(
 );
 
 const server = http.createServer(app);
+// och här har vi vår http server som innehåller vår express server
+// detta för att så vi kan både fånga request från klient som vanligt, och plus vi kan komunicera med fråntend socket.io 
 
 const io = new Server(server, {
   cors: { origin: CORS_ORIGIN, credentials: true },
-});
+});// socket io server som komunicerar med vår frontend socket.io
 
 const port = process.env.PORT || 4000;
 
@@ -30,29 +33,19 @@ type Message = {
   text: string;
 };
 
-const messages: Message[] = [];
-app.post("/chat", (req: Request<Message>, res: Response) => {
-  const message: Message = req.body;
-  console.log(message);
-  messages.push(message);
-  res.sendStatus(201);
-});
+const messages: Message[] = [{id:'123',text:'ciao'},{id:'680',text:'casa'}];
 
 io.on("connection", (socket) => {
   console.log("Client connected to server");
   socket.emit("messages", messages);
-  // everytime we get a connection to the server we get the messages send back to us
-  socket.on("message", (message) => {
+  // dessa meddelande sparas i const message: Message[] och renderas automatisk vid start av vår frontend appen
+  // useEffect i frontend anropas socket.emit('messages', messages) som skickar all messages till frontend socket.io 
+  socket.on("messagez", (message) => {
     messages.push(message);
     io.emit("message", message);
   });
 });
 
-app.get("/chat", (req: Request, res: Response<Message[]>) => {
-  res.send(messages);
-});
-
 server.listen(port, () => {
-  // we listen to server, wich inside this server there is express server that take care af the client request
   console.log(`[server]: Server is running at https://localhost:${port}`);
 });
